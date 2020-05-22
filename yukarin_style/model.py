@@ -6,17 +6,15 @@ from torch import nn, Tensor
 from torch.nn.functional import cross_entropy
 
 from yukarin_style.config import ModelConfig, NetworkConfig
-from yukarin_style.network.predictor import create_predictor, Predictor
+from yukarin_style.network.style_transfer import StyleTransfer, create_style_transfer
 
 
 class Networks(NamedTuple):
-    predictor: Predictor
+    style_transfer: StyleTransfer
 
 
 def create_network(config: NetworkConfig):
-    return Networks(
-        predictor=create_predictor(config),
-    )
+    return Networks(style_transfer=create_style_transfer(config))
 
 
 def accuracy(output: Tensor, target: Tensor):
@@ -27,19 +25,13 @@ def accuracy(output: Tensor, target: Tensor):
 
 
 class Model(nn.Module):
-    def __init__(
-            self,
-            model_config: ModelConfig,
-            networks: Networks
-    ) -> None:
+    def __init__(self, model_config: ModelConfig, networks: Networks) -> None:
         super().__init__()
         self.model_config = model_config
         self.predictor = networks.predictor
 
     def __call__(
-            self,
-            input: Tensor,
-            target: Tensor,
+        self, input: Tensor, target: Tensor,
     ):
         feature = self.predictor(input)
         output = self.tail(feature, target)
@@ -47,10 +39,7 @@ class Model(nn.Module):
         loss = cross_entropy(output, target)
 
         # report
-        values = dict(
-            loss=loss,
-            accuracy=accuracy(output, target),
-        )
+        values = dict(loss=loss, accuracy=accuracy(output, target),)
         if not self.training:
             weight = input.shape[0]
             values = {key: (l, weight) for key, l in values.items()}  # add weight

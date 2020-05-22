@@ -7,16 +7,24 @@ from yukarin_style.utility.git_utility import get_commit_id, get_branch_name
 
 @dataclass
 class DatasetConfig:
-    input_glob: str
-    target_glob: str
+    sampling_length: int
+    spectrogram_glob: str
+    silence_glob: str
+    min_not_silence_length: int
+    seed: int
+    num_train: Optional[int]
     num_test: int
-    num_times_test: int = 1
-    seed: int = 0
+    evaluate_times: Optional[int]
 
 
 @dataclass
 class NetworkConfig:
-    pass
+    feature_size: int
+    hidden_size: int
+    style_size: int
+    kernel_size: int
+    residual_block_num: int
+    adaptive_residual_block_num: int
 
 
 @dataclass
