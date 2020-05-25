@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import glob
 from pathlib import Path
+import random
 from typing import Sequence, Union
 
 from acoustic_feature_extractor.data.sampling_data import SamplingData
@@ -58,7 +59,7 @@ def extract_input(
         raise Exception("cannot pick not silence data")
 
     spectrogram = spectrogram_data.array[offset : offset + sampling_length]
-    return dict(spectrogram=spectrogram, silence=silence,)
+    return dict(spectrogram=spectrogram, silence=silence)
 
 
 class BaseSpectrogramDataset(Dataset):
@@ -100,11 +101,28 @@ class SpectrogramDataset(BaseSpectrogramDataset):
         if isinstance(input, LazyInputData):
             input = input.generate()
 
-        return default_convert(
-            self.make_input(
-                spectrogram_data=input.spectrogram, silence_data=input.silence,
-            )
+        return self.make_input(
+            spectrogram_data=input.spectrogram, silence_data=input.silence,
         )
+
+
+class TrainDataset(Dataset):
+    def __init__(
+        self, spectrogram_dataset: BaseSpectrogramDataset, latent_size: int,
+    ):
+        self.spectrogram_dataset = spectrogram_dataset
+        self.latent_size = latent_size
+
+    def __len__(self):
+        return len(self.spectrogram_dataset)
+
+    def __getitem__(self, i):
+        x = self.spectrogram_dataset[i]["spectrogram"]
+        x_ref1 = self.spectrogram_dataset[random.randrange(len(self))]["spectrogram"]
+        x_ref2 = self.spectrogram_dataset[random.randrange(len(self))]["spectrogram"]
+        z1 = numpy.random.randn(self.latent_size).astype(x.dtype)
+        z2 = numpy.random.randn(self.latent_size).astype(x.dtype)
+        return default_convert(dict(x=x, x_ref1=x_ref1, x_ref2=x_ref2, z1=z1, z2=z2))
 
 
 def create_dataset(config: DatasetConfig):
@@ -148,8 +166,4 @@ def create_dataset(config: DatasetConfig):
 
         return dataset
 
-    return dict(
-        train=make_dataset(trains),
-        test=make_dataset(tests),
-        test_eval=make_dataset(tests, for_evaluate=True),
-    )
+    return dict(train=make_dataset(trains), test=make_dataset(tests))

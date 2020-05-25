@@ -70,9 +70,9 @@ class StyleTransfer(nn.Module):
 def create_style_transfer(config: NetworkConfig):
     return StyleTransfer(
         feature_size=config.feature_size,
-        hidden_size=config.hidden_size,
+        hidden_size=config.style_transfer.hidden_size,
         style_size=config.style_size,
-        kernel_size=config.kernel_size,
-        residual_block_num=config.residual_block_num,
-        adaptive_residual_block_num=config.adaptive_residual_block_num,
+        kernel_size=config.style_transfer.kernel_size,
+        residual_block_num=config.style_transfer.residual_block_num,
+        adaptive_residual_block_num=config.style_transfer.adaptive_residual_block_num,
     )

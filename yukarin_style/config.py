@@ -18,18 +18,55 @@ class DatasetConfig:
 
 
 @dataclass
-class NetworkConfig:
-    feature_size: int
+class StyleTransferConfig:
     hidden_size: int
-    style_size: int
     kernel_size: int
     residual_block_num: int
     adaptive_residual_block_num: int
 
 
 @dataclass
+class MappingNetworkConfig:
+    hidden_size: int
+    layer_num: int
+
+
+@dataclass
+class StyleEncoderConfig:
+    min_hidden_size: int
+    max_hidden_size: int
+    kernel_size: int
+    residual_block_num: int
+    last_kernel_size: int
+
+
+@dataclass
+class DiscriminatorConfig:
+    min_hidden_size: int
+    max_hidden_size: int
+    kernel_size: int
+    residual_block_num: int
+    last_kernel_size: int
+
+
+@dataclass
+class NetworkConfig:
+    feature_size: int
+    style_size: int
+    latent_size: int
+    style_transfer: StyleTransferConfig
+    mapping_network: MappingNetworkConfig
+    style_encoder: StyleEncoderConfig
+    discriminator: DiscriminatorConfig
+
+
+@dataclass
 class ModelConfig:
-    pass
+    style_reconstruction_weight: float
+    diversity_sensitive_weight: float
+    cycle_consistency_weight: float
+    identification_weight: float
+    r1_weight: float
 
 
 @dataclass
@@ -38,10 +75,13 @@ class TrainConfig:
     log_iteration: int
     snapshot_iteration: int
     stop_iteration: int
+    style_transfer_optimizer: Dict[str, Any]
+    mapping_network_optimizer: Dict[str, Any]
+    style_encoder_optimizer: Dict[str, Any]
+    discriminator_optimizer: Dict[str, Any]
+    moving_average_rate: float
+    model_config_linear_shift: Optional[Dict[str, Any]]
     num_processes: Optional[int] = None
-    optimizer: Dict[str, Any] = field(default_factory=dict(
-        name='Adam',
-    ))
 
 
 @dataclass
@@ -59,7 +99,7 @@ class Config:
     project: ProjectConfig
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> 'Config':
+    def from_dict(cls, d: Dict[str, Any]) -> "Config":
         backward_compatible(d)
         return dataclass_utility.convert_from_dict(cls, d)
 
@@ -67,8 +107,8 @@ class Config:
         return dataclass_utility.convert_to_dict(self)
 
     def add_git_info(self):
-        self.project.tags['git-commit-id'] = get_commit_id()
-        self.project.tags['git-branch-name'] = get_branch_name()
+        self.project.tags["git-commit-id"] = get_commit_id()
+        self.project.tags["git-branch-name"] = get_branch_name()
 
 
 def backward_compatible(d: Dict[str, Any]):
