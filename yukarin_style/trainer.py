@@ -1,7 +1,7 @@
 import warnings
 from copy import copy, deepcopy
 from pathlib import Path
-from typing import Any, Dict, Generator
+from typing import Any, Dict
 
 import torch
 import yaml
@@ -114,16 +114,25 @@ def create_trainer(
 
     trainer = Trainer(updater, stop_trigger=trigger_stop, out=output)
 
-    def add_evaluator(target, eval_func):
-        ext = extensions.Evaluator(
-            test_iter, target, eval_func=eval_func, device=device,
-        )
-        trainer.extend(ext, name="test", trigger=trigger_log)
+    def eval_func(**kwargs):
+        generator_model.forward_with_latent(**kwargs)
+        generator_model.forward_with_reference(**kwargs)
+        discriminator_model.forward_with_latent(**kwargs)
+        discriminator_model.forward_with_reference(**kwargs)
+        moving_generator_model.forward_with_latent(**kwargs)
+        moving_generator_model.forward_with_reference(**kwargs)
 
-    add_evaluator(generator_model, generator_model.forward_with_latent)
-    add_evaluator(generator_model, generator_model.forward_with_reference)
-    add_evaluator(discriminator_model, discriminator_model.forward_with_latent)
-    add_evaluator(discriminator_model, discriminator_model.forward_with_reference)
+    ext = extensions.Evaluator(
+        test_iter,
+        target=dict(
+            generator=generator_model,
+            discriminator=discriminator_model,
+            moving_generator=moving_generator_model,
+        ),
+        eval_func=eval_func,
+        device=device,
+    )
+    trainer.extend(ext, name="test", trigger=trigger_log)
 
     def add_snapshot_object(target, name):
         ext = extensions.snapshot_object(
@@ -138,7 +147,9 @@ def create_trainer(
     trainer.extend(extensions.FailOnNonNumber(), trigger=trigger_log)
     trainer.extend(extensions.LogReport(trigger=trigger_log))
     trainer.extend(
-        extensions.PrintReport(["iteration", "main/loss", "test/main/loss"]),
+        extensions.PrintReport(
+            ["iteration", "generator/latent/loss", "test/generator/latent/loss"]
+        ),
         trigger=trigger_log,
     )
 

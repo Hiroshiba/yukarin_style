@@ -43,11 +43,14 @@ class DoensampleNetwork(nn.Module):
                 )
             )
 
+        s = min_hidden_size * 2 ** residual_block_num
+        s = s if s <= max_hidden_size else max_hidden_size
+
         layers.append(nn.LeakyReLU(0.2, inplace=True))
         layers.append(
             nn.Conv1d(
-                in_channels=input_size,
-                out_channels=min_hidden_size,
+                in_channels=s,
+                out_channels=s,
                 kernel_size=last_kernel_size,
                 stride=1,
                 padding=0,
@@ -57,12 +60,11 @@ class DoensampleNetwork(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
-        s = min_hidden_size * 2 ** residual_block_num
-        s = s if s <= max_hidden_size else max_hidden_size
         self.tail = nn.Linear(in_features=s, out_features=output_size)
 
     def forward(self, x: Tensor):
+        x = x.transpose(1, 2)
         x = self.layers(x)
-        x = x.unsqueeze(2)
+        x = x.squeeze(2)
         x = self.tail(x)
         return x

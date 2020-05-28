@@ -11,6 +11,7 @@ class DatasetConfig:
     spectrogram_glob: str
     silence_glob: str
     min_not_silence_length: int
+    latent_size: int
     seed: int
     num_train: Optional[int]
     num_test: int
@@ -87,7 +88,7 @@ class TrainConfig:
 @dataclass
 class ProjectConfig:
     name: str
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -112,4 +113,4 @@ class Config:
 
 
 def backward_compatible(d: Dict[str, Any]):
-    pass
+    assert d["dataset"]["latent_size"] == d["network"]["latent_size"]

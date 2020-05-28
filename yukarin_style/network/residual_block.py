@@ -17,7 +17,7 @@ class ResidualBlock(nn.Module):
             out_channels=input_size,
             kernel_size=kernel_size,
             stride=1,
-            padding=0,
+            padding=kernel_size // 2,
         )
 
         self.residual_pool = nn.AvgPool1d(kernel_size=2) if downsample else None
@@ -29,7 +29,7 @@ class ResidualBlock(nn.Module):
             out_channels=output_size,
             kernel_size=kernel_size,
             stride=1,
-            padding=0,
+            padding=kernel_size // 2,
         )
 
         self.shortcut_conv = (
@@ -80,7 +80,7 @@ class AdaptiveResidualBlock(nn.Module):
             out_channels=hidden_size,
             kernel_size=kernel_size,
             stride=1,
-            padding=0,
+            padding=kernel_size // 2,
         )
 
         self.norm2 = AdaptiveInstanceNorm1d(
@@ -92,7 +92,7 @@ class AdaptiveResidualBlock(nn.Module):
             out_channels=hidden_size,
             kernel_size=kernel_size,
             stride=1,
-            padding=0,
+            padding=kernel_size // 2,
         )
 
     def forward(self, x: Tensor, s: Tensor):

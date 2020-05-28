@@ -160,6 +160,9 @@ def create_dataset(config: DatasetConfig):
             sampling_length=sampling_length,
             min_not_silence_length=config.min_not_silence_length,
         )
+        dataset = TrainDataset(
+            spectrogram_dataset=dataset, latent_size=config.latent_size
+        )
 
         if for_evaluate:
             dataset = ConcatDataset([dataset] * config.evaluate_times)

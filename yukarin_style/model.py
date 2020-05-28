@@ -1,4 +1,4 @@
-from typing import Dict, NamedTuple, Optional
+from typing import NamedTuple, Optional
 from pytorch_trainer import report
 import torch
 from torch import Tensor, nn
@@ -63,7 +63,7 @@ def calc_r1_loss(output, input):
         retain_graph=True,
         only_inputs=True,
     )[0]
-    reg = 0.5 * grad.pow(2).view(input.shape[0], -1).sum(1).mean()
+    reg = 0.5 * grad.pow(2).reshape(input.shape[0], -1).sum(1).mean()
     return reg
 
 
@@ -76,7 +76,7 @@ class GeneratorModel(nn.Module):
         self.style_encoder = networks.style_encoder
         self.discriminator = networks.discriminator
 
-    def __call__(
+    def forward(
         self,
         x: Tensor,
         x_ref1: Optional[Tensor],
@@ -148,9 +148,7 @@ class GeneratorModel(nn.Module):
         z1: Optional[Tensor],
         z2: Optional[Tensor],
     ):
-        return self.forward(
-            x=x, x_ref1=None, x_ref2=None, z1=z1, z2=z2, prefix="latent",
-        )
+        return self(x=x, x_ref1=None, x_ref2=None, z1=z1, z2=z2, prefix="latent",)
 
     def forward_with_reference(
         self,
@@ -160,9 +158,7 @@ class GeneratorModel(nn.Module):
         z1: Optional[Tensor],
         z2: Optional[Tensor],
     ):
-        return self.forward(
-            x=x, x_ref1=x_ref1, x_ref2=x_ref2, z1=None, z2=None, prefix="ref",
-        )
+        return self(x=x, x_ref1=x_ref1, x_ref2=x_ref2, z1=None, z2=None, prefix="ref",)
 
 
 class DiscriminatorModel(nn.Module):
@@ -174,18 +170,19 @@ class DiscriminatorModel(nn.Module):
         self.style_encoder = networks.style_encoder
         self.discriminator = networks.discriminator
 
-    def __call__(
+    def forward(
         self, x: Tensor, x_ref: Optional[Tensor], z: Optional[Tensor], prefix: str,
     ):
         assert (x_ref is None) != (z is None)
 
-        # real loss
-        x.requires_grad_()
-        real = self.discriminator(x)
-        loss_real = calc_adversarial_loss(x=real, is_real=True)
-
         # r1 loss
-        loss_r1 = calc_r1_loss(output=real, input=x)
+        x.requires_grad_()
+        with torch.enable_grad():
+            real = self.discriminator(x)
+            loss_r1 = calc_r1_loss(output=real, input=x)
+
+        # real loss
+        loss_real = calc_adversarial_loss(x=real, is_real=True)
 
         # fake loss
         with torch.no_grad():
@@ -221,7 +218,7 @@ class DiscriminatorModel(nn.Module):
         z1: Optional[Tensor],
         z2: Optional[Tensor],
     ):
-        return self.forward(x=x, x_ref=None, z=z1, prefix="latent")
+        return self(x=x, x_ref=None, z=z1, prefix="latent")
 
     def forward_with_reference(
         self,
@@ -231,4 +228,4 @@ class DiscriminatorModel(nn.Module):
         z1: Optional[Tensor],
         z2: Optional[Tensor],
     ):
-        return self.forward(x=x, x_ref=x_ref1, z=None, prefix="ref")
+        return self(x=x, x_ref=x_ref1, z=None, prefix="ref")

@@ -1,5 +1,5 @@
 numpy
-torch==1.5.0
+torch
 tqdm
 pytest
 pyyaml

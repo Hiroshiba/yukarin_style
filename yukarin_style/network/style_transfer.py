@@ -56,6 +56,7 @@ class StyleTransfer(nn.Module):
         )
 
     def forward(self, x: Tensor, s: Tensor):
+        x = x.transpose(1, 2)
         x = self.head(x)
 
         x = self.residual_blocks(x)
@@ -64,6 +65,7 @@ class StyleTransfer(nn.Module):
             x = layer(x=x, s=s)
 
         x = self.tail(x)
+        x = x.transpose(1, 2)
         return x
 
 

@@ -1,21 +1,74 @@
 dataset:
-  input_glob: "/path/to/input-npy/*.npy"
-  target_glob: "/path/to/target-npy/*.npy"
-  num_test: 100
+  sampling_length: 64
+  spectrogram_glob: "/tmp/spectrogram/*.npy"
+  silence_glob: "/tmp/silence/*.npy"
+  min_not_silence_length: 64
+  latent_size: 3
   seed: 0
+  num_train: null
+  num_test: 5
+  evaluate_times: 5
 
-network: {}
+network:
+  feature_size: 2
+  style_size: 4
+  latent_size: 3
+  style_transfer:
+    hidden_size: 32
+    kernel_size: 5
+    residual_block_num: 4
+    adaptive_residual_block_num: 4
+  mapping_network:
+    hidden_size: 8
+    layer_num: 2
+  style_encoder:
+    min_hidden_size: 4
+    max_hidden_size: 32
+    kernel_size: 3
+    residual_block_num: 4
+    last_kernel_size: 4
+  discriminator:
+    min_hidden_size: 4
+    max_hidden_size: 32
+    kernel_size: 3
+    residual_block_num: 4
+    last_kernel_size: 4
 
-model: {}
+model:
+  style_reconstruction_weight: 1
+  diversity_sensitive_weight: 1
+  cycle_consistency_weight: 1
+  identification_weight: 1
+  r1_weight: 1
 
 train:
-  batchsize: 100
-  log_iteration: 1000
-  snapshot_iteration: 100000
-  stop_iteration: 100000
-  optimizer:
-    name: "adam"
-    lr: 0.001
+  batchsize: 8
+  log_iteration: 100
+  snapshot_iteration: 1000
+  stop_iteration: 1000
+  style_transfer_optimizer:
+    name: Adam
+    lr: 0.0001
+    betas: [0, 0.99]
+  mapping_network_optimizer:
+    name: Adam
+    lr: 0.0001
+    betas: [0, 0.99]
+  style_encoder_optimizer:
+    name: Adam
+    lr: 0.0001
+    betas: [0, 0.99]
+  discriminator_optimizer:
+    name: Adam
+    lr: 0.000001
+    betas: [0, 0.99]
+  moving_average_rate: 0.99
+  model_config_linear_shift:
+    attr: diversity_sensitive_weight
+    value_range: [1, 0]
+    time_range: [0, 1000]
+  num_processes: 4
 
 project:
-  name: null
+  name: check
+  tags: {}
