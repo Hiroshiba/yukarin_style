@@ -47,12 +47,16 @@ class StyleTransfer(nn.Module):
             ]
         )
 
-        self.tail = nn.Conv1d(
-            in_channels=hidden_size,
-            out_channels=feature_size,
-            kernel_size=1,
-            stride=1,
-            padding=0,
+        self.tail = nn.Sequential(
+            nn.InstanceNorm1d(num_features=hidden_size, affine=True),
+            nn.LeakyReLU(0.2),
+            nn.Conv1d(
+                in_channels=hidden_size,
+                out_channels=feature_size,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+            ),
         )
 
     def forward(self, x: Tensor, s: Tensor):

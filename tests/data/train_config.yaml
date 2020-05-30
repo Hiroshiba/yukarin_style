@@ -50,19 +50,23 @@ train:
     name: Adam
     lr: 0.0001
     betas: [0, 0.99]
+    weight_decay: 0.0001
   mapping_network_optimizer:
     name: Adam
     lr: 0.0001
     betas: [0, 0.99]
+    weight_decay: 0.0001
   style_encoder_optimizer:
     name: Adam
     lr: 0.0001
     betas: [0, 0.99]
+    weight_decay: 0.0001
   discriminator_optimizer:
     name: Adam
     lr: 0.000001
     betas: [0, 0.99]
-  moving_average_rate: 0.99
+    weight_decay: 0.0001
+  moving_average_rate: 0.999
   model_config_linear_shift:
     attr: diversity_sensitive_weight
     value_range: [1, 0]

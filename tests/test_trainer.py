@@ -19,19 +19,29 @@ def train_config_path():
     return get_data_directory() / "train_config.yaml"
 
 
-def generate_data(feature_dir: Path, silence_dir: Path, wavelength: float, length=300):
+def generate_data(
+    feature_dir: Path,
+    silence_dir: Path,
+    wavelength: float,
+    exponent: float,
+    amplitude: float,
+    length=300,
+):
     random_phase = numpy.random.rand()
     wave = numpy.sin(
         (numpy.arange(length).astype(numpy.float32) / wavelength + random_phase)
         * 2
         * numpy.pi
     )
+    wave = numpy.sign(wave) * numpy.abs(wave) ** exponent * amplitude
+
+    filename = f"{wavelength}_{exponent}_{amplitude}.npy"
 
     feature = numpy.stack([wave, wave]).T
-    SamplingData(array=feature, rate=100).save(feature_dir / f"{wavelength}.npy")
+    SamplingData(array=feature, rate=100).save(feature_dir / filename)
 
     silence = numpy.zeros_like(wave, dtype=bool)
-    SamplingData(array=silence, rate=100).save(silence_dir / f"{wavelength}.npy")
+    SamplingData(array=silence, rate=100).save(silence_dir / filename)
 
 
 def test_trainer(train_config_path: Path):
@@ -54,12 +64,15 @@ def test_trainer(train_config_path: Path):
     silence_dir = Path(config.dataset.silence_glob).parent
     silence_dir.mkdir()
 
-    for wavelength in numpy.linspace(
-        start=10, stop=config.dataset.sampling_length, num=300
-    ):
-        generate_data(
-            feature_dir=feature_dir, silence_dir=silence_dir, wavelength=wavelength,
-        )
+    for exponent in numpy.logspace(-2, 1, num=10):
+        for amplitude in numpy.linspace(0.1, 1, num=10):
+            generate_data(
+                feature_dir=feature_dir,
+                silence_dir=silence_dir,
+                wavelength=config.dataset.sampling_length // 2,
+                exponent=exponent,
+                amplitude=amplitude,
+            )
 
     # train
     with TemporaryDirectory() as output_dir:
