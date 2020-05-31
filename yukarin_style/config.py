@@ -8,9 +8,10 @@ from yukarin_style.utility.git_utility import get_commit_id, get_branch_name
 @dataclass
 class DatasetConfig:
     sampling_length: int
+    padding_length: int
     spectrogram_glob: str
     silence_glob: str
-    min_not_silence_length: int
+    min_not_silence_rate: float
     latent_size: int
     seed: int
     num_train: Optional[int]
@@ -63,6 +64,7 @@ class NetworkConfig:
 
 @dataclass
 class ModelConfig:
+    padding_length: int
     style_reconstruction_weight: float
     diversity_sensitive_weight: float
     cycle_consistency_weight: float
@@ -114,3 +116,5 @@ class Config:
 
 def backward_compatible(d: Dict[str, Any]):
     assert d["dataset"]["latent_size"] == d["network"]["latent_size"]
+
+    assert d["dataset"]["padding_length"] == d["model"]["padding_length"]

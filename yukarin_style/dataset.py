@@ -108,8 +108,12 @@ class SpectrogramDataset(BaseSpectrogramDataset):
 
 class TrainDataset(Dataset):
     def __init__(
-        self, spectrogram_dataset: BaseSpectrogramDataset, latent_size: int,
+        self,
+        padded_spectrogram_dataset: BaseSpectrogramDataset,
+        spectrogram_dataset: BaseSpectrogramDataset,
+        latent_size: int,
     ):
+        self.padded_spectrogram_dataset = padded_spectrogram_dataset
         self.spectrogram_dataset = spectrogram_dataset
         self.latent_size = latent_size
 
@@ -117,7 +121,7 @@ class TrainDataset(Dataset):
         return len(self.spectrogram_dataset)
 
     def __getitem__(self, i):
-        x = self.spectrogram_dataset[i]["spectrogram"]
+        x = self.padded_spectrogram_dataset[i]["spectrogram"]
         x_ref1 = self.spectrogram_dataset[random.randrange(len(self))]["spectrogram"]
         x_ref2 = self.spectrogram_dataset[random.randrange(len(self))]["spectrogram"]
         z1 = numpy.random.randn(self.latent_size).astype(x.dtype)
@@ -153,15 +157,23 @@ def create_dataset(config: DatasetConfig):
             for fn in fns
         ]
 
-        sampling_length = config.sampling_length
-
-        dataset = SpectrogramDataset(
+        sampling_length = config.sampling_length + config.padding_length * 4
+        padded_spectrogram_dataset = SpectrogramDataset(
             inputs=inputs,
             sampling_length=sampling_length,
-            min_not_silence_length=config.min_not_silence_length,
+            min_not_silence_length=int(config.min_not_silence_rate * sampling_length),
+        )
+
+        sampling_length = config.sampling_length
+        spectrogram_dataset = SpectrogramDataset(
+            inputs=inputs,
+            sampling_length=sampling_length,
+            min_not_silence_length=int(config.min_not_silence_rate * sampling_length),
         )
         dataset = TrainDataset(
-            spectrogram_dataset=dataset, latent_size=config.latent_size
+            padded_spectrogram_dataset=padded_spectrogram_dataset,
+            spectrogram_dataset=spectrogram_dataset,
+            latent_size=config.latent_size,
         )
 
         if for_evaluate:

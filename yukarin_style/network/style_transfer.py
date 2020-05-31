@@ -11,6 +11,7 @@ class StyleTransfer(nn.Module):
         hidden_size: int,
         style_size: int,
         kernel_size: int,
+        padding_flag: bool,
         residual_block_num: int,
         adaptive_residual_block_num: int,
     ):
@@ -30,6 +31,7 @@ class StyleTransfer(nn.Module):
                     input_size=hidden_size,
                     output_size=hidden_size,
                     kernel_size=kernel_size,
+                    padding_flag=padding_flag,
                     downsample=False,
                 )
                 for _ in range(residual_block_num)
@@ -42,6 +44,7 @@ class StyleTransfer(nn.Module):
                     hidden_size=hidden_size,
                     style_size=style_size,
                     kernel_size=kernel_size,
+                    padding_flag=padding_flag,
                 )
                 for _ in range(adaptive_residual_block_num)
             ]
@@ -79,6 +82,7 @@ def create_style_transfer(config: NetworkConfig):
         hidden_size=config.style_transfer.hidden_size,
         style_size=config.style_size,
         kernel_size=config.style_transfer.kernel_size,
+        padding_flag=False,
         residual_block_num=config.style_transfer.residual_block_num,
         adaptive_residual_block_num=config.style_transfer.adaptive_residual_block_num,
     )

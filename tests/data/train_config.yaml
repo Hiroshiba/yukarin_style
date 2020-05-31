@@ -1,8 +1,9 @@
 dataset:
   sampling_length: 64
+  padding_length: 32
   spectrogram_glob: "/tmp/spectrogram/*.npy"
   silence_glob: "/tmp/silence/*.npy"
-  min_not_silence_length: 64
+  min_not_silence_rate: 1.0
   latent_size: 3
   seed: 0
   num_train: null
@@ -35,6 +36,7 @@ network:
     last_kernel_size: 4
 
 model:
+  padding_length: 32
   style_reconstruction_weight: 1
   diversity_sensitive_weight: 1
   cycle_consistency_weight: 1

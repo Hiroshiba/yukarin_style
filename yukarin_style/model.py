@@ -87,6 +87,8 @@ class GeneratorModel(nn.Module):
     ):
         assert (x_ref1 is None) != (z1 is None)
 
+        pad = self.model_config.padding_length
+
         if z1 is not None:
             s1 = self.mapping_network(z1)
             s2 = self.mapping_network(z2)
@@ -96,25 +98,29 @@ class GeneratorModel(nn.Module):
 
         # adversarial loss
         y1 = self.style_transfer(x=x, s=s1)
-        loss_adv = calc_adversarial_loss(x=self.discriminator(y1), is_real=True)
+        loss_adv = calc_adversarial_loss(
+            x=self.discriminator(y1[:, pad:-pad]), is_real=True
+        )
 
         # style reconstruction loss
-        s1_re = self.style_encoder(y1)
+        s1_re = self.style_encoder(y1[:, pad:-pad])
         loss_style = torch.mean(torch.abs(s1_re - s1))
 
         # diversity sensitive loss
         y2 = self.style_transfer(x=x, s=s2)
         y2 = y2.detach()
-        loss_diverse = -torch.mean(torch.abs(y1 - y2))
+        loss_diverse = -torch.mean(torch.abs(y1[:, pad:-pad] - y2[:, pad:-pad]))
 
         # cycle-consistency loss
-        s_x = self.style_encoder(x)
+        s_x = self.style_encoder(x[:, pad * 2 : -pad * 2])
         x_re = self.style_transfer(y1, s_x)
-        loss_cycle = torch.mean(torch.abs(x_re - x))
+        loss_cycle = torch.mean(torch.abs(x_re - x[:, pad * 2 : -pad * 2]))
 
         # identification loss
         x_id = self.style_transfer(x, s_x)
-        loss_identify = torch.mean(torch.abs(x_id - x))
+        loss_identify = torch.mean(
+            torch.abs(x_id[:, pad:-pad] - x[:, pad * 2 : -pad * 2])
+        )
 
         loss = (
             loss_adv
@@ -148,7 +154,7 @@ class GeneratorModel(nn.Module):
         z1: Optional[Tensor],
         z2: Optional[Tensor],
     ):
-        return self(x=x, x_ref1=None, x_ref2=None, z1=z1, z2=z2, prefix="latent",)
+        return self(x=x, x_ref1=None, x_ref2=None, z1=z1, z2=z2, prefix="latent")
 
     def forward_with_reference(
         self,
@@ -158,7 +164,7 @@ class GeneratorModel(nn.Module):
         z1: Optional[Tensor],
         z2: Optional[Tensor],
     ):
-        return self(x=x, x_ref1=x_ref1, x_ref2=x_ref2, z1=None, z2=None, prefix="ref",)
+        return self(x=x, x_ref1=x_ref1, x_ref2=x_ref2, z1=None, z2=None, prefix="ref")
 
 
 class DiscriminatorModel(nn.Module):
@@ -175,11 +181,14 @@ class DiscriminatorModel(nn.Module):
     ):
         assert (x_ref is None) != (z is None)
 
+        pad = self.model_config.padding_length
+
         # r1 loss
-        x.requires_grad_()
         with torch.enable_grad():
-            real = self.discriminator(x)
-            loss_r1 = calc_r1_loss(output=real, input=x)
+            x_r1 = x[:, pad * 2 : -pad * 2]
+            x_r1.requires_grad_()
+            real = self.discriminator(x_r1)
+            loss_r1 = calc_r1_loss(output=real, input=x_r1)
 
         # real loss
         loss_real = calc_adversarial_loss(x=real, is_real=True)
@@ -192,7 +201,9 @@ class DiscriminatorModel(nn.Module):
                 s = self.style_encoder(x_ref)
 
             y = self.style_transfer(x=x, s=s)
-        loss_fake = calc_adversarial_loss(x=self.discriminator(y), is_real=False)
+        loss_fake = calc_adversarial_loss(
+            x=self.discriminator(y[:, pad:-pad]), is_real=False
+        )
 
         loss = loss_real + loss_fake + self.model_config.r1_weight * loss_r1
 

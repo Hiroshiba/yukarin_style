@@ -6,9 +6,18 @@ import math
 
 class ResidualBlock(nn.Module):
     def __init__(
-        self, input_size: int, output_size: int, kernel_size: int, downsample: bool
+        self,
+        input_size: int,
+        output_size: int,
+        kernel_size: int,
+        padding_flag: bool,
+        downsample: bool,
     ):
+        assert padding_flag or not downsample
+
         super().__init__()
+        self.padding_flag = padding_flag
+        self.padding_size = kernel_size // 2
 
         self.norm1 = nn.InstanceNorm1d(num_features=input_size, affine=True)
         self.activation1 = nn.LeakyReLU(0.2)
@@ -17,7 +26,7 @@ class ResidualBlock(nn.Module):
             out_channels=input_size,
             kernel_size=kernel_size,
             stride=1,
-            padding=kernel_size // 2,
+            padding=self.padding_size if padding_flag else 0,
         )
 
         self.residual_pool = nn.AvgPool1d(kernel_size=2) if downsample else None
@@ -29,7 +38,7 @@ class ResidualBlock(nn.Module):
             out_channels=output_size,
             kernel_size=kernel_size,
             stride=1,
-            padding=kernel_size // 2,
+            padding=self.padding_size if padding_flag else 0,
         )
 
         self.shortcut_conv = (
@@ -58,6 +67,11 @@ class ResidualBlock(nn.Module):
         h = self.activation2(h)
         h = self.conv2(h)
 
+        # shortcut
+        if not self.padding_flag:
+            pad = self.padding_size * 2
+            x = x[:, :, pad:-pad]
+
         if self.shortcut_conv is not None:
             x = self.shortcut_conv(x)
 
@@ -68,8 +82,13 @@ class ResidualBlock(nn.Module):
 
 
 class AdaptiveResidualBlock(nn.Module):
-    def __init__(self, hidden_size: int, style_size: int, kernel_size: int):
+    def __init__(
+        self, hidden_size: int, style_size: int, kernel_size: int, padding_flag: bool
+    ):
         super().__init__()
+
+        self.padding_flag = padding_flag
+        self.padding_size = kernel_size // 2
 
         self.norm1 = AdaptiveInstanceNorm1d(
             feature_size=hidden_size, style_size=style_size
@@ -80,7 +99,7 @@ class AdaptiveResidualBlock(nn.Module):
             out_channels=hidden_size,
             kernel_size=kernel_size,
             stride=1,
-            padding=kernel_size // 2,
+            padding=self.padding_size if padding_flag else 0,
         )
 
         self.norm2 = AdaptiveInstanceNorm1d(
@@ -92,7 +111,7 @@ class AdaptiveResidualBlock(nn.Module):
             out_channels=hidden_size,
             kernel_size=kernel_size,
             stride=1,
-            padding=kernel_size // 2,
+            padding=self.padding_size if padding_flag else 0,
         )
 
     def forward(self, x: Tensor, s: Tensor):
@@ -103,4 +122,10 @@ class AdaptiveResidualBlock(nn.Module):
         h = self.norm2(x=h, s=s)
         h = self.activation2(h)
         h = self.conv2(h)
+
+        # shortcut
+        if not self.padding_flag:
+            pad = self.padding_size * 2
+            x = x[:, :, pad:-pad]
+
         return (x + h) / math.sqrt(2)

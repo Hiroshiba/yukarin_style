@@ -39,6 +39,7 @@ class DoensampleNetwork(nn.Module):
                     input_size=s1,
                     output_size=s2,
                     kernel_size=kernel_size,
+                    padding_flag=True,
                     downsample=True,
                 )
             )
