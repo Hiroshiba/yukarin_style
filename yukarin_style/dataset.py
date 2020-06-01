@@ -62,6 +62,10 @@ def extract_input(
     return dict(spectrogram=spectrogram, silence=silence)
 
 
+def generate_latent(latent_size: int):
+    return numpy.random.randn(latent_size).astype(numpy.float32)
+
+
 class BaseSpectrogramDataset(Dataset):
     def __init__(
         self, sampling_length: int, min_not_silence_length: int,
@@ -124,8 +128,8 @@ class TrainDataset(Dataset):
         x = self.padded_spectrogram_dataset[i]["spectrogram"]
         x_ref1 = self.spectrogram_dataset[random.randrange(len(self))]["spectrogram"]
         x_ref2 = self.spectrogram_dataset[random.randrange(len(self))]["spectrogram"]
-        z1 = numpy.random.randn(self.latent_size).astype(x.dtype)
-        z2 = numpy.random.randn(self.latent_size).astype(x.dtype)
+        z1 = generate_latent(self.latent_size)
+        z2 = generate_latent(self.latent_size)
         return default_convert(dict(x=x, x_ref1=x_ref1, x_ref2=x_ref2, z1=z1, z2=z2))
 
 

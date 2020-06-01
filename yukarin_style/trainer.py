@@ -136,7 +136,7 @@ def create_trainer(
 
     def add_snapshot_object(target, name):
         ext = extensions.snapshot_object(
-            target, filename=name + "_{.updater.iteration}.npz"
+            target, filename=name + "_{.updater.iteration}.pth"
         )
         trainer.extend(ext, trigger=trigger_snapshot)
 

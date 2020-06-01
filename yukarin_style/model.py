@@ -6,8 +6,8 @@ import torch.nn.functional as F
 
 from yukarin_style.config import ModelConfig, NetworkConfig
 from yukarin_style.network.discriminator import Discriminator
-from yukarin_style.network.mapping_network import MappingNetwork
-from yukarin_style.network.style_encoder import StyleEncoder
+from yukarin_style.network.mapping_network import MappingNetwork, create_mapping_network
+from yukarin_style.network.style_encoder import StyleEncoder, create_style_encoder
 from yukarin_style.network.style_transfer import StyleTransfer, create_style_transfer
 
 
@@ -21,21 +21,8 @@ class Networks(NamedTuple):
 def create_network(config: NetworkConfig):
     return Networks(
         style_transfer=create_style_transfer(config),
-        mapping_network=MappingNetwork(
-            input_size=config.latent_size,
-            output_size=config.style_size,
-            hidden_size=config.mapping_network.hidden_size,
-            layer_num=config.mapping_network.layer_num,
-        ),
-        style_encoder=StyleEncoder(
-            input_size=config.feature_size,
-            min_hidden_size=config.style_encoder.min_hidden_size,
-            max_hidden_size=config.style_encoder.max_hidden_size,
-            kernel_size=config.style_encoder.kernel_size,
-            output_size=config.style_size,
-            residual_block_num=config.style_encoder.residual_block_num,
-            last_kernel_size=config.style_encoder.last_kernel_size,
-        ),
+        mapping_network=create_mapping_network(config),
+        style_encoder=create_style_encoder(config),
         discriminator=Discriminator(
             input_size=config.feature_size,
             min_hidden_size=config.discriminator.min_hidden_size,

@@ -1,5 +1,7 @@
 from torch import Tensor, nn
 
+from yukarin_style.config import NetworkConfig
+
 
 class MappingNetwork(nn.Module):
     def __init__(
@@ -25,3 +27,12 @@ class MappingNetwork(nn.Module):
 
     def forward(self, x: Tensor):
         return self.layers(x)
+
+
+def create_mapping_network(config: NetworkConfig):
+    return MappingNetwork(
+        input_size=config.latent_size,
+        output_size=config.style_size,
+        hidden_size=config.mapping_network.hidden_size,
+        layer_num=config.mapping_network.layer_num,
+    )
