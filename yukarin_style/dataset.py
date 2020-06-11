@@ -35,6 +35,8 @@ def extract_input(
     spectrogram_data: SamplingData,
     silence_data: SamplingData,
     min_not_silence_length: int,
+    padding_length: int,
+    padding_value=0,
 ):
     """
     :return:
@@ -43,8 +45,19 @@ def extract_input(
     """
     assert spectrogram_data.rate == silence_data.rate
 
-    length = len(spectrogram_data.array)
-    assert length >= sampling_length
+    spectrogram = spectrogram_data.array
+
+    length = len(spectrogram)
+    if length < sampling_length:
+        p_start = numpy.random.randint(sampling_length - length + 1)
+        p_end = sampling_length - length - p_start
+        spectrogram = numpy.pad(
+            spectrogram,
+            [[p_start, p_end], [0, 0]],
+            mode="constant",
+            constant_values=padding_value,
+        )
+        length = sampling_length
 
     for _ in range(10000):
         if length > sampling_length:
@@ -58,7 +71,28 @@ def extract_input(
     else:
         raise Exception("cannot pick not silence data")
 
-    spectrogram = spectrogram_data.array[offset : offset + sampling_length]
+    start, end = offset - padding_length, offset + sampling_length + padding_length
+    if start < 0 or end > length:
+        shape = list(spectrogram.shape)
+        shape[0] = sampling_length + padding_length * 2
+        new_spectrogram = (
+            numpy.ones(shape=shape, dtype=spectrogram.dtype) * padding_value
+        )
+        if start < 0:
+            p_start = -start
+            start = 0
+        else:
+            p_start = 0
+        if end > length:
+            p_end = sampling_length + padding_length * 2 - (end - length)
+            end = length
+        else:
+            p_end = sampling_length + padding_length * 2
+        new_spectrogram[p_start:p_end] = spectrogram[start:end]
+        spectrogram = new_spectrogram
+    else:
+        spectrogram = spectrogram[start:end]
+
     return dict(spectrogram=spectrogram, silence=silence)
 
 
@@ -68,10 +102,11 @@ def generate_latent(latent_size: int):
 
 class BaseSpectrogramDataset(Dataset):
     def __init__(
-        self, sampling_length: int, min_not_silence_length: int,
+        self, sampling_length: int, min_not_silence_length: int, padding_length: int
     ):
         self.sampling_length = sampling_length
         self.min_not_silence_length = min_not_silence_length
+        self.padding_length = padding_length
 
     def make_input(
         self, spectrogram_data: SamplingData, silence_data: SamplingData,
@@ -81,6 +116,7 @@ class BaseSpectrogramDataset(Dataset):
             spectrogram_data=spectrogram_data,
             silence_data=silence_data,
             min_not_silence_length=self.min_not_silence_length,
+            padding_length=self.padding_length,
         )
 
 
@@ -90,10 +126,12 @@ class SpectrogramDataset(BaseSpectrogramDataset):
         inputs: Sequence[Union[InputData, LazyInputData]],
         sampling_length: int,
         min_not_silence_length: int,
+        padding_length: int,
     ):
         super().__init__(
             sampling_length=sampling_length,
             min_not_silence_length=min_not_silence_length,
+            padding_length=padding_length,
         )
         self.inputs = inputs
 
@@ -161,18 +199,22 @@ def create_dataset(config: DatasetConfig):
             for fn in fns
         ]
 
-        sampling_length = config.sampling_length + config.padding_length * 4
         padded_spectrogram_dataset = SpectrogramDataset(
             inputs=inputs,
-            sampling_length=sampling_length,
-            min_not_silence_length=int(config.min_not_silence_rate * sampling_length),
+            sampling_length=config.sampling_length,
+            min_not_silence_length=int(
+                config.min_not_silence_rate * config.sampling_length
+            ),
+            padding_length=config.padding_length * 2,
         )
 
-        sampling_length = config.sampling_length
         spectrogram_dataset = SpectrogramDataset(
             inputs=inputs,
-            sampling_length=sampling_length,
-            min_not_silence_length=int(config.min_not_silence_rate * sampling_length),
+            sampling_length=config.sampling_length,
+            min_not_silence_length=int(
+                config.min_not_silence_rate * config.sampling_length
+            ),
+            padding_length=0,
         )
         dataset = TrainDataset(
             padded_spectrogram_dataset=padded_spectrogram_dataset,

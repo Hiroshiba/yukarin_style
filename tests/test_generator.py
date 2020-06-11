@@ -1,5 +1,5 @@
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory
 
 import numpy
 import pytest
@@ -19,17 +19,17 @@ def train_config_path():
 
 @pytest.fixture()
 def style_transfer_path():
-    return get_data_directory() / "style_transfer_100.npz"
+    return get_data_directory() / "style_transfer_50000.pth"
 
 
 @pytest.fixture()
 def mapping_network_path():
-    return get_data_directory() / "mapping_network_100.npz"
+    return get_data_directory() / "mapping_network_50000.pth"
 
 
 @pytest.fixture()
 def style_encoder_path():
-    return get_data_directory() / "style_encoder_100.npz"
+    return get_data_directory() / "style_encoder_50000.pth"
 
 
 def test_generator(
@@ -52,25 +52,36 @@ def test_generator(
     )
 
     batch_size = 3
+    sampling_length = config.dataset.sampling_length
 
-    x = torch.stack(
+    x = numpy.stack(
         [
-            torch.from_numpy(
-                generate_data(
-                    wavelength=config.dataset.sampling_length // 2,
-                    exponent=2 ** (i - 1),
-                    amplitude=0.5,
-                )[0]
-            )
+            generate_data(
+                wavelength=sampling_length // 2, exponent=2 ** (i - 1), amplitude=0.5,
+            )[0]
             for i in range(batch_size)
         ]
     )
 
-    z = generator.generate_latent(batch_size=batch_size)
-    s = generator.generate_style(x=None, z=z)
-    y = generator.generate(x=x, s=s)
+    x_torch = torch.from_numpy(x)
 
-    for y_one in y:
-        with NamedTemporaryFile(suffix=".npy") as f:
-            pass
-        numpy.save(f.name, y_one)
+    z = generator.generate_latent(batch_size=1)
+    z = z.repeat([batch_size, 1])
+
+    s_latent = generator.generate_style(x=None, z=z)
+    y_latent = generator.generate(x=x_torch, s=s_latent)
+
+    s_ref = generator.generate_style(x=x_torch[:, :sampling_length], z=None)
+    y_ref = generator.generate(x=x_torch, s=s_ref)
+
+    with TemporaryDirectory() as output_dir:
+        pass
+
+    Path(output_dir).mkdir()
+
+    for i, (x_one, y_one_latent, y_one_ref) in enumerate(zip(x, y_latent, y_ref)):
+        numpy.save(Path(output_dir, f"input-{i}.npy"), x_one)
+        numpy.save(Path(output_dir, f"generate-latent-{i}.npy"), y_one_latent)
+        numpy.save(Path(output_dir, f"generate-ref-{i}.npy"), y_one_ref)
+
+    print(f"generated data dir: {output_dir}")
