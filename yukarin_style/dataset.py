@@ -172,35 +172,33 @@ class TrainDataset(Dataset):
 
 
 def create_dataset(config: DatasetConfig):
-    spectrogram_paths = {
-        Path(p).stem: Path(p) for p in glob.glob(str(config.spectrogram_glob))
-    }
-    fn_list = sorted(spectrogram_paths.keys())
-    assert len(fn_list) > 0
+    spectrogram_paths = list(map(Path, sorted(glob.glob(str(config.spectrogram_glob)))))
+    assert len(spectrogram_paths) > 0
 
-    silence_paths = {Path(p).stem: Path(p) for p in glob.glob(str(config.silence_glob))}
-    assert set(fn_list) == set(silence_paths.keys())
+    silence_paths = list(map(Path, sorted(glob.glob(str(config.silence_glob)))))
+    assert len(silence_paths) == len(spectrogram_paths)
 
-    numpy.random.RandomState(config.seed).shuffle(fn_list)
+    assert tuple(p.stem for p in spectrogram_paths) == tuple(
+        p.stem for p in silence_paths
+    )
+
+    inputs = [
+        LazyInputData(spectrogram_path=spectrogram_path, silence_path=silence_path,)
+        for spectrogram_path, silence_path in zip(spectrogram_paths, silence_paths)
+    ]
+    numpy.random.RandomState(config.seed).shuffle(inputs)
 
     num_test = config.num_test
     num_train = (
-        config.num_train if config.num_train is not None else len(fn_list) - num_test
+        config.num_train if config.num_train is not None else len(inputs) - num_test
     )
 
-    trains = fn_list[num_test:][:num_train]
-    tests = fn_list[:num_test]
+    trains = inputs[num_test:][:num_train]
+    tests = inputs[:num_test]
 
-    def make_dataset(fns, for_evaluate=False):
-        inputs = [
-            LazyInputData(
-                spectrogram_path=spectrogram_paths[fn], silence_path=silence_paths[fn],
-            )
-            for fn in fns
-        ]
-
+    def make_dataset(data, for_evaluate=False):
         padded_spectrogram_dataset = SpectrogramDataset(
-            inputs=inputs,
+            inputs=data,
             sampling_length=config.sampling_length,
             min_not_silence_length=int(
                 config.min_not_silence_rate * config.sampling_length
@@ -209,7 +207,7 @@ def create_dataset(config: DatasetConfig):
         )
 
         spectrogram_dataset = SpectrogramDataset(
-            inputs=inputs,
+            inputs=data,
             sampling_length=config.sampling_length,
             min_not_silence_length=int(
                 config.min_not_silence_rate * config.sampling_length
