@@ -5,9 +5,9 @@ import numpy
 import pytest
 import torch
 import yaml
+from tests.utility import generate_data, get_data_directory
 from yaml import SafeLoader
 
-from tests.utility import generate_data, get_data_directory
 from yukarin_style.config import Config
 from yukarin_style.generator import Generator
 

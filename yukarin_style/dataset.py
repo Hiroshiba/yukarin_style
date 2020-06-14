@@ -1,11 +1,11 @@
-from dataclasses import dataclass
 import glob
-from pathlib import Path
 import random
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Sequence, Union
 
-from acoustic_feature_extractor.data.sampling_data import SamplingData
 import numpy
+from acoustic_feature_extractor.data.sampling_data import SamplingData
 from torch.utils.data.dataset import ConcatDataset, Dataset
 
 from yukarin_style.config import DatasetConfig
@@ -225,4 +225,8 @@ def create_dataset(config: DatasetConfig):
 
         return dataset
 
-    return dict(train=make_dataset(trains), test=make_dataset(tests))
+    return dict(
+        train=make_dataset(trains),
+        test=make_dataset(tests),
+        eval=make_dataset(tests, for_evaluate=True),
+    )
