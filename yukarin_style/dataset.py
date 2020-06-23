@@ -6,6 +6,7 @@ from typing import Sequence, Union
 
 import numpy
 from acoustic_feature_extractor.data.sampling_data import SamplingData
+from temp_cache import TempCache
 from torch.utils.data.dataset import ConcatDataset, Dataset
 
 from yukarin_style.config import DatasetConfig
@@ -25,8 +26,8 @@ class LazyInputData:
 
     def generate(self):
         return InputData(
-            spectrogram=SamplingData.load(self.spectrogram_path),
-            silence=SamplingData.load(self.silence_path),
+            spectrogram=SamplingData.load(str(TempCache(self.spectrogram_path))),
+            silence=SamplingData.load(str(TempCache(self.silence_path))),
         )
 
 

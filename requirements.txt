@@ -6,3 +6,4 @@ pyyaml
 tensorboardX
 git+https://github.com/Hiroshiba/pytorch-trainer@1.2.0
 git+https://github.com/Hiroshiba/acoustic_feature_extractor
+git+https://github.com/Hiroshiba/temp_cache
