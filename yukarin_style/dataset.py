@@ -1,8 +1,7 @@
-import glob
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence, Union
+from typing import Optional, Sequence, Union
 
 import numpy
 from acoustic_feature_extractor.data.sampling_data import SamplingData
@@ -172,12 +171,18 @@ class TrainDataset(Dataset):
         return default_convert(dict(x=x, x_ref1=x_ref1, x_ref2=x_ref2, z1=z1, z2=z2))
 
 
-def create_dataset(config: DatasetConfig):
-    spectrogram_paths = list(map(Path, sorted(glob.glob(str(config.spectrogram_glob)))))
+def create_dataset(config: DatasetConfig, dataset_dir: Optional[Path]):
+    spectrogram_paths = list(
+        map(Path, sorted(config.spectrogram_filelist.read_text().split()))
+    )
     assert len(spectrogram_paths) > 0
 
-    silence_paths = list(map(Path, sorted(glob.glob(str(config.silence_glob)))))
+    silence_paths = list(map(Path, sorted(config.silence_filelist.read_text().split())))
     assert len(silence_paths) == len(spectrogram_paths)
+
+    if dataset_dir is not None:
+        spectrogram_paths = [Path.joinpath(dataset_dir, p) for p in spectrogram_paths]
+        silence_paths = [Path.joinpath(dataset_dir, p) for p in silence_paths]
 
     assert tuple(p.stem for p in spectrogram_paths) == tuple(
         p.stem for p in silence_paths

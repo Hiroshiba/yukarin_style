@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import numpy
 import pytest
 import yaml
-from tests.utility import get_data_directory, generate_and_save_data
+from tests.utility import generate_and_save_data, get_data_directory
 from yaml import SafeLoader
 
 from yukarin_style.config import Config
@@ -24,16 +24,16 @@ def test_trainer(train_config_path: Path):
 
     # dummy data
     tmp_dir = TemporaryDirectory()
-    config.dataset.spectrogram_glob = config.dataset.spectrogram_glob.replace(
-        "/tmp", tmp_dir.name
+    config.dataset.spectrogram_filelist = Path(
+        tmp_dir.name, config.dataset.spectrogram_filelist.relative_to("/tmp")
     )
-    config.dataset.silence_glob = config.dataset.silence_glob.replace(
-        "/tmp", tmp_dir.name
+    config.dataset.silence_filelist = Path(
+        tmp_dir.name, config.dataset.silence_filelist.relative_to("/tmp")
     )
 
-    feature_dir = Path(config.dataset.spectrogram_glob).parent
+    feature_dir = Path(tmp_dir.name, "feature")
     feature_dir.mkdir()
-    silence_dir = Path(config.dataset.silence_glob).parent
+    silence_dir = Path(tmp_dir.name, "silence")
     silence_dir.mkdir()
 
     for exponent in numpy.logspace(-2, 1, num=10):
@@ -46,9 +46,18 @@ def test_trainer(train_config_path: Path):
                 amplitude=amplitude,
             )
 
+    config.dataset.spectrogram_filelist.write_text(
+        "\n".join(map(str, feature_dir.glob("*.npy")))
+    )
+    config.dataset.silence_filelist.write_text(
+        "\n".join(map(str, silence_dir.glob("*.npy")))
+    )
+
     # train
     with TemporaryDirectory() as output_dir:
         pass
 
-    trainer = create_trainer(config_dict=config.to_dict(), output=Path(output_dir))
+    trainer = create_trainer(
+        config_dict=config.to_dict(), output=Path(output_dir), dataset_dir=None
+    )
     trainer.run()

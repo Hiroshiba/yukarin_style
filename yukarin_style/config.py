@@ -1,16 +1,17 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from yukarin_style.utility import dataclass_utility
-from yukarin_style.utility.git_utility import get_commit_id, get_branch_name
+from yukarin_style.utility.git_utility import get_branch_name, get_commit_id
 
 
 @dataclass
 class DatasetConfig:
     sampling_length: int
     padding_length: int
-    spectrogram_glob: str
-    silence_glob: str
+    spectrogram_filelist: Path
+    silence_filelist: Path
     min_not_silence_rate: float
     latent_size: int
     seed: int

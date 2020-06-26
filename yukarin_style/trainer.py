@@ -1,21 +1,21 @@
 import warnings
 from copy import copy, deepcopy
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import torch
 import yaml
 from pytorch_trainer.iterators import MultiprocessIterator
-from pytorch_trainer.training import extensions, Trainer
+from pytorch_trainer.training import Trainer, extensions
 from tensorboardX import SummaryWriter
-from torch import optim, nn
+from torch import nn, optim
 
 from yukarin_style.config import Config
 from yukarin_style.dataset import create_dataset
-from yukarin_style.model import GeneratorModel, DiscriminatorModel, create_network
-from yukarin_style.utility.tensorboard_extension import TensorboardReport
+from yukarin_style.model import DiscriminatorModel, GeneratorModel, create_network
 from yukarin_style.updater import Updater
 from yukarin_style.utility.chainer_utility import ObjectLinearShift
+from yukarin_style.utility.tensorboard_extension import TensorboardReport
 
 
 def create_optimizer(config: Dict[str, Any], model: nn.Module):
@@ -33,7 +33,7 @@ def create_optimizer(config: Dict[str, Any], model: nn.Module):
 
 
 def create_trainer(
-    config_dict: Dict[str, Any], output: Path,
+    config_dict: Dict[str, Any], output: Path, dataset_dir: Optional[Path],
 ):
     # config
     config = Config.from_dict(config_dict)
@@ -65,7 +65,7 @@ def create_trainer(
             dataset_timeout=60 * 15,
         )
 
-    datasets = create_dataset(config.dataset)
+    datasets = create_dataset(config.dataset, dataset_dir=dataset_dir)
     train_iter = _create_iterator(datasets["train"], for_train=True)
     test_iter = _create_iterator(datasets["test"], for_train=False)
 
@@ -155,7 +155,7 @@ def create_trainer(
 
     if config.train.model_config_linear_shift is not None:
         ext = ObjectLinearShift(
-            **config.train.model_config_linear_shift, target=config.model
+            target=config.model, **config.train.model_config_linear_shift
         )
         trainer.extend(
             ext, trigger=(1, "iteration"),

@@ -1,8 +1,8 @@
 dataset:
   sampling_length: 64
   padding_length: 32
-  spectrogram_glob: "/tmp/spectrogram/*.npy"
-  silence_glob: "/tmp/silence/*.npy"
+  spectrogram_filelist: "/tmp/spectrogram_filelist.txt"
+  silence_filelist: "/tmp/silence_filelist.txt"
   min_not_silence_rate: 1.0
   latent_size: 3
   seed: 0
